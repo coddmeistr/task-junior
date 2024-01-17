@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/gin-gonic/gin"
@@ -16,36 +15,82 @@ import (
 )
 
 func main() {
+	log := logger.Init()
+
 	if err := godotenv.Load(".env"); err != nil {
-		log.Printf("Couldn't load env vars from .env file")
+		log.Info("Couldn't initialize env variables via .env file")
 	}
 
-	var dbUrl string
-	dbUrl = os.Getenv("DB_CONNECTION_STRING")
-	if dbUrl == "" {
-		panic("DB_CONNECTION_STRING env is empty string")
+	envs := ParseEnvs()
+
+	if envs.dbConnectionString == nil {
+		log.Fatal("Database connection string env is empty string")
 	}
-	dbSession, err := repository.EstablishDatabaseConnection(dbUrl)
+	dbSession, err := repository.EstablishDatabaseConnection(*envs.dbConnectionString)
 	if err != nil {
-		panic(fmt.Errorf("Fatal error database connection: %s \n", err))
+		log.Fatal(fmt.Sprintf("Fatal error database connection: %s \n", err))
 	}
 
-	logger := logger.Init()
+	var localPort string
+	if envs.Port != nil {
+		localPort = *envs.Port
+	} else {
+		log.Info("Local port env is empty string. Using default port.")
+		localPort = ":5050"
+	}
 
 	// Configure router
-	router := gin.Default()
+	var router *gin.Engine
+	if envs.Mode != nil && *envs.Mode == "release" {
+		gin.SetMode(gin.ReleaseMode)
+		router = gin.New()
+	} else {
+		router = gin.Default()
+	}
 	// All routes using cors middleware
 	router.Use(cors.CORSMiddleware())
+	router.Use(logger.ResponseLogger(log), logger.RequestLogger(log))
 
 	// Register general metrics endpoint
-	metric := metrics.Metric{Logger: logger}
+	metric := metrics.Metric{Logger: log}
 	metric.Register(router)
 
 	// Logic
-	repo := repository.NewRepository(dbSession, logger)
-	svc := service.NewService(repo, logger)
-	trans := transport.NewTransport(svc, logger)
+	repo := repository.NewRepository(dbSession, log)
+	svc := service.NewService(repo, log)
+	trans := transport.NewTransport(svc, log)
 	trans.RegisterRoutes(router)
 
-	router.Run(":5050")
+	log.Info(fmt.Sprintf("Running server on port %s...", localPort))
+	router.Run(localPort)
+}
+
+type Envs struct {
+	Mode               *string
+	dbConnectionString *string
+	Port               *string
+}
+
+func ParseEnvs() Envs {
+	envs := Envs{}
+
+	if port, exists := os.LookupEnv("LOCAL_PORT"); exists {
+		envs.Port = &port
+	} else {
+		envs.Port = nil
+	}
+
+	if dbUrl, exists := os.LookupEnv("DB_CONNECTION_STRING"); exists {
+		envs.dbConnectionString = &dbUrl
+	} else {
+		envs.dbConnectionString = nil
+	}
+
+	if mode, exists := os.LookupEnv("MODE"); exists {
+		envs.Mode = &mode
+	} else {
+		envs.Mode = nil
+	}
+
+	return envs
 }
