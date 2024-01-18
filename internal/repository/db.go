@@ -1,7 +1,6 @@
 package repository
 
 import (
-	"github.com/maxik12233/task-junior/internal/models"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -12,7 +11,7 @@ func EstablishDatabaseConnection(dbUrl string) (*gorm.DB, error) {
 		return nil, err
 	}
 
-	err = db.AutoMigrate(&models.NameStatistic{})
+	err = db.AutoMigrate(Person{}, Characteristic{})
 	if err != nil {
 		return nil, err
 	}

@@ -9,9 +9,12 @@ import (
 	"github.com/maxik12233/task-junior/internal/repository"
 	"github.com/maxik12233/task-junior/internal/service"
 	"github.com/maxik12233/task-junior/internal/transport"
+	"github.com/maxik12233/task-junior/pkg/api/paginate"
+	"github.com/maxik12233/task-junior/pkg/api/sort"
 	"github.com/maxik12233/task-junior/pkg/cors"
 	"github.com/maxik12233/task-junior/pkg/logger"
 	"github.com/maxik12233/task-junior/pkg/metrics"
+	"github.com/maxik12233/task-junior/pkg/name_info_sdk"
 )
 
 func main() {
@@ -50,6 +53,8 @@ func main() {
 	// All routes using cors middleware
 	router.Use(cors.CORSMiddleware())
 	router.Use(logger.ResponseLogger(log), logger.RequestLogger(log))
+	router.Use(paginate.Middleware(1, 5))
+	router.Use(sort.Middleware("default", "ASC"))
 
 	// Register general metrics endpoint
 	metric := metrics.Metric{Logger: log}
@@ -57,7 +62,7 @@ func main() {
 
 	// Logic
 	repo := repository.NewRepository(dbSession, log)
-	svc := service.NewService(repo, log)
+	svc := service.NewService(repo, log, name_info_sdk.NewNameInfo(""))
 	trans := transport.NewTransport(svc, log)
 	trans.RegisterRoutes(router)
 
