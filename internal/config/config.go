@@ -41,25 +41,26 @@ func fixFilePath(path string) string {
 	return fixed
 }
 
-func BindConfig(configFilename string) {
+func BindConfig(configFilename string) error {
 	cfg = Config{}
 
 	if err := env.Parse(&cfg); err != nil {
-		panic(err)
+		return err
 	}
 
 	v := viper.New()
 	path := fixFilePath(getCurrentPath() + "\\" + configFilename)
 	v.SetConfigFile(path)
 	if err := v.ReadInConfig(); err != nil {
-		panic(err)
+		return err
 	}
 	err := v.Unmarshal(&cfg)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	initialized = true
+	return nil
 }
 
 func GetConfig() Config {

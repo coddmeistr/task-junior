@@ -25,12 +25,22 @@ func main() {
 		log.Info("Couldn't initialize env variables via .env file")
 	}
 
-	config.BindConfig("config.yaml")
+	if err := config.BindConfig("config.yaml"); err != nil {
+		log.Fatal(fmt.Sprintf("Fatal error couldn't bind config: %s \n", err))
+	}
 	cfg := config.GetConfig()
 
-	dbSession, err := repository.EstablishDatabaseConnection(cfg.PostgresConnectionString)
+	dbSession, err := repository.EstablishPostgresConnection(cfg.PostgresConnectionString)
 	if err != nil {
 		log.Fatal(fmt.Sprintf("Fatal error database connection: %s \n", err))
+	}
+
+	// Uncomment to switch to gorm automigration
+	/*if err := repository.DoAutoMigration(dbSession); err != nil {
+		log.Fatal(fmt.Sprintf("Fatal error auto migration: %s \n", err))
+	}*/
+	if err := repository.DoCommonMigration(cfg.PostgresConnectionString); err != nil {
+		log.Fatal(fmt.Sprintf("Fatal error common migration: %s \n", err))
 	}
 
 	// Configure router
