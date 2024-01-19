@@ -10,8 +10,8 @@ import (
 )
 
 const (
-	ASC               = "ASC"
-	DESC              = "DESC"
+	ASC               = "asc"
+	DESC              = "desc"
 	OptionsContextKey = "sort_options"
 )
 
@@ -36,7 +36,7 @@ func Middleware(defaultSortField, defaultSortOrder string) gin.HandlerFunc {
 			if upperSortOrder != ASC && upperSortOrder != DESC {
 				c.Writer.WriteHeader(http.StatusBadRequest)
 				err := api.ErrorResponse{
-					Message: "collation must be ASC or DESC",
+					Message: "collation must be asc or desc",
 					Details: nil,
 				}
 				c.Writer.Write(err.Marshal())

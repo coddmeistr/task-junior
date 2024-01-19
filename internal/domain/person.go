@@ -6,6 +6,7 @@ type Person struct {
 	Surname          string
 	Patronymic       string
 	CharacteristicID int
+	Characteristic   Characteristic
 }
 
 type Characteristic struct {

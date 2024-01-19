@@ -18,6 +18,26 @@ type Characteristic struct {
 	Nationality string `gorm:"not null"`
 }
 
+func (p *Person) ToDomain() domain.Person {
+	return domain.Person{
+		ID:               p.ID,
+		Name:             p.Name,
+		Surname:          p.Surname,
+		Patronymic:       p.Patronymic,
+		CharacteristicID: p.CharacteristicID,
+		Characteristic:   p.Characteristic.ToDomain(),
+	}
+}
+
+func (c *Characteristic) ToDomain() domain.Characteristic {
+	return domain.Characteristic{
+		ID:          c.ID,
+		Age:         c.Age,
+		Gender:      c.Gender,
+		Nationality: c.Nationality,
+	}
+}
+
 func (p *Person) FromDomain(person domain.Person) {
 	if person.ID != 0 {
 		p.ID = person.ID

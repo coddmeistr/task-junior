@@ -2,11 +2,14 @@ package transport
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	app "github.com/maxik12233/task-junior"
 	"github.com/maxik12233/task-junior/internal/service"
+	"github.com/maxik12233/task-junior/pkg/api/paginate"
+	"github.com/maxik12233/task-junior/pkg/api/sort"
 	"go.uber.org/zap"
 )
 
@@ -46,17 +49,19 @@ func (t *Transport) RegisterRoutes(router *gin.Engine) {
 func (t *Transport) AddPersonInfo(c *gin.Context) {
 	var req AddPersonInfoRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		t.logger.Error("Error given bad json body", zap.Error(err))
 		c.JSON(app.GetHTTPCodeFromError(app.ErrBadRequest), app.WrapE(app.ErrBadRequest, "Bad JSON body").Error())
 		return
 	}
 
 	validate := validator.New()
 	if err := validate.Struct(req); err != nil {
+		t.logger.Error("Failed struct validation", zap.Error(err))
 		c.JSON(app.GetHTTPCodeFromError(app.ErrBadRequest), app.WrapE(app.ErrBadRequest, "Bad JSON body. Failed validation").Error())
 		return
 	}
 
-	info, err := t.svc.AddNewNameInfo(c.Request.Context(), req.ToDomain())
+	info, err := t.svc.CreatePersonInfo(c.Request.Context(), req.ToDomain())
 	if err != nil {
 		c.JSON(app.GetHTTPCodeFromError(err), err.Error())
 		return
@@ -75,12 +80,14 @@ func (t *Transport) AddPersonInfo(c *gin.Context) {
 func (t *Transport) DeletePersonInfo(c *gin.Context) {
 	var req DeletePersonInfoRequest
 	if err := c.BindJSON(&req); err != nil {
+		t.logger.Error("Error given bad json body", zap.Error(err))
 		c.JSON(app.GetHTTPCodeFromError(app.ErrBadRequest), app.WrapE(app.ErrBadRequest, "Bad JSON body").Error())
 		return
 	}
 
 	validate := validator.New()
 	if err := validate.Struct(req); err != nil {
+		t.logger.Error("Failed struct validation", zap.Error(err))
 		c.JSON(app.GetHTTPCodeFromError(app.ErrBadRequest), app.WrapE(app.ErrBadRequest, "Bad JSON body. Failed validation").Error())
 		return
 	}
@@ -95,18 +102,80 @@ func (t *Transport) DeletePersonInfo(c *gin.Context) {
 }
 
 func (t *Transport) GetPersonInfo(c *gin.Context) {
-	// TODO
+	var sortOptions *sort.Options
+	if options, ok := c.Request.Context().Value(sort.OptionsContextKey).(sort.Options); ok {
+		sortOptions = &options
+	}
+
+	var paginateOptions *paginate.Options
+	if options, ok := c.Request.Context().Value(paginate.OptionsContextKey).(paginate.Options); ok {
+		paginateOptions = &options
+	}
+
+	id, err := strconv.Atoi(c.Query("id"))
+	if err == nil {
+		person, err := t.svc.GetPersonInfo(c.Request.Context(), uint(id))
+		if err != nil {
+			c.JSON(app.GetHTTPCodeFromError(err), err.Error())
+			return
+		}
+
+		c.JSON(http.StatusOK, GetPersonInfoResponse{
+			PersonResponse: PersonResponse{
+				Id:          person.ID,
+				Name:        person.Name,
+				Surname:     person.Surname,
+				Patronymic:  person.Patronymic,
+				Age:         person.Characteristic.Age,
+				Gender:      person.Characteristic.Gender,
+				Nationality: person.Characteristic.Nationality,
+			},
+		})
+	} else {
+
+		persons, err := t.svc.GetAllPersonInfo(c.Request.Context(), sortOptions, paginateOptions)
+		if err != nil {
+			c.JSON(app.GetHTTPCodeFromError(err), err.Error())
+			return
+		}
+
+		count, err := t.svc.GetPersonCount(c.Request.Context())
+		if err != nil {
+			c.JSON(app.GetHTTPCodeFromError(err), err.Error())
+			return
+		}
+
+		personResponses := make([]PersonResponse, len(persons))
+		for i, v := range persons {
+			personResponses[i] = PersonResponse{
+				Id:          v.ID,
+				Name:        v.Name,
+				Surname:     v.Surname,
+				Patronymic:  v.Patronymic,
+				Age:         v.Characteristic.Age,
+				Gender:      v.Characteristic.Gender,
+				Nationality: v.Characteristic.Nationality,
+			}
+		}
+
+		c.JSON(http.StatusOK, GetPersonInfoResponse{
+			TotalCount: &count,
+			Persons:    personResponses,
+		})
+	}
 }
 
 func (t *Transport) UpdatePersonInfo(c *gin.Context) {
 	var req UpdatePersonInfoRequest
 	if err := c.BindJSON(&req); err != nil {
+		t.logger.Error("Error given bad json body", zap.Error(err))
 		c.JSON(app.GetHTTPCodeFromError(app.ErrBadRequest), app.WrapE(app.ErrBadRequest, "Bad JSON body").Error())
 		return
 	}
 
 	validate := validator.New()
 	if err := validate.Struct(req); err != nil {
+		t.logger.Error("Failed struct validation", zap.Error(err))
 		c.JSON(app.GetHTTPCodeFromError(app.ErrBadRequest), app.WrapE(app.ErrBadRequest, "Bad JSON body. Failed validation").Error())
 		return
 	}

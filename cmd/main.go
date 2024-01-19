@@ -54,8 +54,8 @@ func main() {
 	// All routes using cors middleware
 	router.Use(cors.CORSMiddleware())
 	router.Use(logging.ResponseLogger(log), logging.RequestLogger(log))
-	router.Use(paginate.Middleware(1, 5))
-	router.Use(sort.Middleware("default", "ASC"))
+	router.Use(paginate.Middleware(0, 2))
+	router.Use(sort.Middleware("name", "asc"))
 
 	// Register general metrics endpoint
 	metric := metrics.Metric{Logger: log}
