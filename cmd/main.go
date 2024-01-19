@@ -9,6 +9,7 @@ import (
 	"github.com/maxik12233/task-junior/internal/repository"
 	"github.com/maxik12233/task-junior/internal/service"
 	"github.com/maxik12233/task-junior/internal/transport"
+	"github.com/maxik12233/task-junior/pkg/api/logging"
 	"github.com/maxik12233/task-junior/pkg/api/paginate"
 	"github.com/maxik12233/task-junior/pkg/api/sort"
 	"github.com/maxik12233/task-junior/pkg/cors"
@@ -52,7 +53,7 @@ func main() {
 	}
 	// All routes using cors middleware
 	router.Use(cors.CORSMiddleware())
-	router.Use(logger.ResponseLogger(log), logger.RequestLogger(log))
+	router.Use(logging.ResponseLogger(log), logging.RequestLogger(log))
 	router.Use(paginate.Middleware(1, 5))
 	router.Use(sort.Middleware("default", "ASC"))
 
