@@ -1,0 +1,4 @@
+default_page: 0
+default_per_page: 2
+default_sort_field: "name"
+default_sort_order: "asc"
