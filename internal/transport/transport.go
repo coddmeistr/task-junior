@@ -20,7 +20,7 @@ type ITransport interface {
 //
 
 const (
-	entityURL = "stats"
+	entityURL = "person"
 )
 
 type Transport struct {
